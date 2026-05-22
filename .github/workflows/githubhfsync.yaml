@@ -1,9 +1,10 @@
 name: Sync Repository to HuggingFace Space
 
-# Auto-deploys the repo to a Hugging Face Space.
+# Auto-deploys the repo to the Hugging Face Space on every push to main.
+# Mirrors the simple, always-triggers approach used by ``lightweight-embeddings``.
 #
 # Triggers:
-#   - workflow_run     → only fires when the CI workflow on main succeeds.
+#   - push (main)       → fires immediately when code lands on main.
 #   - workflow_dispatch → manual override (e.g. emergency redeploy).
 #
 # Required secret: HF_TOKEN  (Hugging Face access token with write scope)
@@ -12,9 +13,7 @@ name: Sync Repository to HuggingFace Space
 #   HF_SPACE      default: docsifer
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -26,17 +25,12 @@ jobs:
   sync-to-huggingface:
     name: Sync code to HuggingFace Space
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          lfs: true
+          fetch-depth: 0  # Fetch all history for all branches and tags
+          lfs: true       # Enable Git LFS support
 
       - name: Push to HuggingFace Space
         env:
@@ -59,4 +53,7 @@ jobs:
 
           # Force-push so the Space mirrors GitHub exactly. The Space history
           # is treated as a derived artifact, not a source of truth.
-          git push -f "${REMOTE}" HEAD:main
+          if ! git push -f "${REMOTE}" HEAD:main; then
+            echo "::error::Failed to sync with HuggingFace Space"
+            exit 1
+          fi
