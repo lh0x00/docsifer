@@ -21,4 +21,8 @@ async def test_readyz_when_analytics_disabled(client) -> None:
 async def test_security_headers(client) -> None:
     resp = await client.get("/v1/healthz")
     assert resp.headers.get("X-Content-Type-Options") == "nosniff"
-    assert resp.headers.get("X-Frame-Options") == "DENY"
+    # Embedding policy is enforced via CSP ``frame-ancestors`` (allows the HF
+    # Spaces hub to iframe the app), not the legacy ``X-Frame-Options`` header.
+    csp = resp.headers.get("Content-Security-Policy", "")
+    assert "frame-ancestors" in csp
+    assert "huggingface.co" in csp
