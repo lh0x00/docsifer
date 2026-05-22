@@ -160,7 +160,7 @@ async def convert_document(
                 logger.info(
                     "Convert file received",
                     extra={
-                        "filename": safe_name,
+                        "upload_filename": safe_name,
                         "size": size,
                         "client_ip": client_ip,
                     },
