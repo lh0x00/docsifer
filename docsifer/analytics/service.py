@@ -165,9 +165,7 @@ class AnalyticsService:
         backoff = 1.0
         while not self._stopped.is_set():
             try:
-                await asyncio.wait_for(
-                    self._stopped.wait(), timeout=self._sync_interval
-                )
+                await asyncio.wait_for(self._stopped.wait(), timeout=self._sync_interval)
                 return  # stopped
             except asyncio.TimeoutError:
                 pass

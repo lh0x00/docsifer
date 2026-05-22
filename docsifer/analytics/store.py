@@ -96,9 +96,7 @@ class UpstashStore:
                 keys = scan[1] or []
                 for key in keys:
                     period = key.split(":", 2)[-1]
-                    data = await loop.run_in_executor(
-                        None, partial(self._client.hgetall, key)
-                    )
+                    data = await loop.run_in_executor(None, partial(self._client.hgetall, key))
                     for label, count in (data or {}).items():
                         try:
                             result[metric][period][label] = int(count)
@@ -123,6 +121,7 @@ class UpstashStore:
         # Prefer pipeline when available (single HTTP round trip)
         pipeline = getattr(self._client, "pipeline", None)
         if callable(pipeline):
+
             def _run() -> None:
                 pipe = pipeline()
                 for key, label, count in ops:
@@ -135,9 +134,7 @@ class UpstashStore:
         # Fallback: parallel single-op calls
         await asyncio.gather(
             *(
-                loop.run_in_executor(
-                    None, partial(self._client.hincrby, key, label, count)
-                )
+                loop.run_in_executor(None, partial(self._client.hincrby, key, label, count))
                 for key, label, count in ops
             )
         )
@@ -166,7 +163,7 @@ class logger_suppress:  # noqa: N801 - tiny utility, lower-case name for context
     def __init__(self, message: str) -> None:
         self._message = message
 
-    def __enter__(self) -> "logger_suppress":
+    def __enter__(self) -> logger_suppress:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> bool:  # type: ignore[no-untyped-def]
@@ -174,7 +171,7 @@ class logger_suppress:  # noqa: N801 - tiny utility, lower-case name for context
             logger.warning("%s: %s", self._message, exc)
         return True
 
-    async def __aenter__(self) -> "logger_suppress":
+    async def __aenter__(self) -> logger_suppress:
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> bool:  # type: ignore[no-untyped-def]

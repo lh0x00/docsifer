@@ -133,10 +133,7 @@ class Settings(BaseSettings):
         """True when a real (non-empty, non-localhost) Redis URL is configured."""
         if not self.analytics_enabled:
             return False
-        url = (self.redis_url or "").strip()
-        if not url:
-            return False
-        return True
+        return bool((self.redis_url or "").strip())
 
     # ---------------------------------------------------------------------
     # Quotas (anonymous, BYOK, authenticated)

@@ -32,17 +32,22 @@ async def disk_cleanup_loop(
             pass
 
         try:
-            now = time.time()
-            removed = 0
-            for entry in tmp_dir.glob(pattern):
-                try:
-                    if now - entry.stat().st_mtime > ttl_sec:
-                        if entry.is_file():
-                            entry.unlink(missing_ok=True)
-                            removed += 1
-                except OSError as exc:
-                    logger.debug("Could not remove %s: %s", entry, exc)
+            removed = await asyncio.to_thread(_sweep_once, tmp_dir, pattern, ttl_sec)
             if removed:
                 logger.info("Disk cleanup removed %d stale file(s)", removed)
         except Exception as exc:
             logger.warning("Disk cleanup failed: %s", exc)
+
+
+def _sweep_once(tmp_dir: Path, pattern: str, ttl_sec: int) -> int:
+    """Synchronous sweep — meant to be run via ``asyncio.to_thread``."""
+    now = time.time()
+    removed = 0
+    for entry in tmp_dir.glob(pattern):
+        try:
+            if now - entry.stat().st_mtime > ttl_sec and entry.is_file():
+                entry.unlink(missing_ok=True)
+                removed += 1
+        except OSError as exc:
+            logger.debug("Could not remove %s: %s", entry, exc)
+    return removed

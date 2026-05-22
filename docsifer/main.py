@@ -18,8 +18,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,9 +54,7 @@ def _build_analytics_store(settings: Settings) -> AnalyticsStore:
         logger.info("Analytics: Upstash store configured")
         return store
     except Exception as exc:  # pragma: no cover - defensive
-        logger.warning(
-            "Could not initialize Upstash store (%s); falling back to in-memory", exc
-        )
+        logger.warning("Could not initialize Upstash store (%s); falling back to in-memory", exc)
         return InMemoryStore()
 
 

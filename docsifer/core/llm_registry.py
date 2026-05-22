@@ -44,7 +44,7 @@ class LLMConfig:
         *,
         default_base_url: str,
         default_model: str,
-    ) -> "LLMConfig | None":
+    ) -> LLMConfig | None:
         if not data:
             return None
         api_key = (data.get("api_key") or "").strip()
@@ -92,9 +92,7 @@ class LLMRegistry:
         client = OpenAI(
             api_key=config.api_key,
             base_url=config.base_url,
-            timeout=httpx.Timeout(
-                self._request_timeout, connect=self._connect_timeout
-            ),
+            timeout=httpx.Timeout(self._request_timeout, connect=self._connect_timeout),
             max_retries=self._max_retries,
         )
         return MarkItDown(llm_client=client, llm_model=config.model)

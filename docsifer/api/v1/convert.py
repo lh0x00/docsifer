@@ -147,60 +147,57 @@ async def convert_document(
     http_cfg = _parse_json_form("http", http, HTTPConfig)
     convert_cfg = _parse_json_form("settings", settings_form, ConvertSettings)
 
-    async with per_ip.acquire(client_ip):
-        async with gate.acquire():
-            if file is not None:
-                guard.check(0)  # file size unknown until streamed
-                _check_extension(file.filename or "", set(settings.allowed_extensions))
+    async with per_ip.acquire(client_ip), gate.acquire():
+        if file is not None:
+            guard.check(0)  # file size unknown until streamed
+            _check_extension(file.filename or "", set(settings.allowed_extensions))
 
-                tmp_root = Path(tempfile.mkdtemp(prefix="docsifer-", dir=settings.tmp_dir))
-                try:
-                    safe_name = _safe_filename(file.filename)
-                    dst = tmp_root / safe_name
-                    size = await _stream_to_disk(
-                        file, dst, max_bytes=settings.max_upload_bytes
-                    )
-                    logger.info(
-                        "Convert file received",
-                        extra={
-                            "filename": safe_name,
-                            "size": size,
-                            "client_ip": client_ip,
-                        },
-                    )
-                    guard.check(size)
-
-                    result = await asyncio.wait_for(
-                        converter.convert_file(
-                            dst,
-                            openai_config=openai_cfg.to_dict(),
-                            http_config=http_cfg.to_dict(),
-                            cleanup_html=convert_cfg.cleanup,
-                        ),
-                        timeout=settings.request_timeout_sec,
-                    )
-                finally:
-                    shutil.rmtree(tmp_root, ignore_errors=True)
-            else:
-                safe_url = validate_url(
-                    url or "",
-                    allowed_schemes=settings.url_allowed_schemes,
-                    allow_private_networks=settings.url_allow_private_networks,
-                )
+            tmp_root = Path(tempfile.mkdtemp(prefix="docsifer-", dir=settings.tmp_dir))
+            try:
+                safe_name = _safe_filename(file.filename)
+                dst = tmp_root / safe_name
+                size = await _stream_to_disk(file, dst, max_bytes=settings.max_upload_bytes)
                 logger.info(
-                    "Convert URL received",
-                    extra={"url": safe_url, "client_ip": client_ip},
+                    "Convert file received",
+                    extra={
+                        "filename": safe_name,
+                        "size": size,
+                        "client_ip": client_ip,
+                    },
                 )
-                guard.check(0)
+                guard.check(size)
+
                 result = await asyncio.wait_for(
                     converter.convert_file(
-                        safe_url,
+                        dst,
                         openai_config=openai_cfg.to_dict(),
                         http_config=http_cfg.to_dict(),
                         cleanup_html=convert_cfg.cleanup,
                     ),
                     timeout=settings.request_timeout_sec,
                 )
+            finally:
+                shutil.rmtree(tmp_root, ignore_errors=True)
+        else:
+            safe_url = validate_url(
+                url or "",
+                allowed_schemes=settings.url_allowed_schemes,
+                allow_private_networks=settings.url_allow_private_networks,
+            )
+            logger.info(
+                "Convert URL received",
+                extra={"url": safe_url, "client_ip": client_ip},
+            )
+            guard.check(0)
+            result = await asyncio.wait_for(
+                converter.convert_file(
+                    safe_url,
+                    openai_config=openai_cfg.to_dict(),
+                    http_config=http_cfg.to_dict(),
+                    cleanup_html=convert_cfg.cleanup,
+                ),
+                timeout=settings.request_timeout_sec,
+            )
 
     background_tasks.add_task(_record_access_safe, analytics, result.token_count)
     return ConvertResponse(filename=result.filename, markdown=result.markdown)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from ..exceptions import QueueFullError
 

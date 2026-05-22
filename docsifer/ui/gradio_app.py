@@ -136,7 +136,7 @@ def _status(text: str, *, level: str = "info") -> str:
     color = palette.get(level, palette["info"])
     return (
         f'<div style="padding:10px 14px;border-radius:10px;'
-        f'background:{color}14;color:{color};font-size:0.9rem;'
+        f"background:{color}14;color:{color};font-size:0.9rem;"
         f'border:1px solid {color}30;">{text}</div>'
     )
 
@@ -209,13 +209,11 @@ def build_interface(settings: Settings, app: FastAPI) -> gr.Blocks:
                 return "", None, _status(f"Conversion failed: {exc}", level="err")
 
             asyncio.create_task(_record_access(result.token_count))
-            md_path = _write_markdown_file(
-                result.markdown, tmp_dir=settings.tmp_dir, stem=stem
-            )
+            md_path = _write_markdown_file(result.markdown, tmp_dir=settings.tmp_dir, stem=stem)
             byte_len = len(result.markdown.encode("utf-8"))
             ok_msg = (
                 f"Done — {len(result.markdown):,} chars · "
-                f"{byte_len/1024:.1f} KB · ~{result.token_count:,} tokens"
+                f"{byte_len / 1024:.1f} KB · ~{result.token_count:,} tokens"
             )
             return result.markdown, md_path, _status(ok_msg, level="ok")
         finally:

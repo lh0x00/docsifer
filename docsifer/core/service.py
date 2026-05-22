@@ -107,9 +107,7 @@ class DocsiferService:
     async def shutdown(self) -> None:
         """Stop the worker pool gracefully (called from app lifespan)."""
         self._llm_registry.clear()
-        await asyncio.get_running_loop().run_in_executor(
-            None, self._executor.shutdown, True
-        )
+        await asyncio.get_running_loop().run_in_executor(None, self._executor.shutdown, True)
 
     # ------------------------------------------------------------------
     # Internal

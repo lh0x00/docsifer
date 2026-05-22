@@ -2,8 +2,10 @@ from docsifer.core.html_cleaner import clean_html
 
 
 def test_removes_style_script_noscript() -> None:
-    html = "<html><head><style>body{}</style><script>x()</script></head>" \
-           "<body><noscript>nope</noscript><p>hi</p></body></html>"
+    html = (
+        "<html><head><style>body{}</style><script>x()</script></head>"
+        "<body><noscript>nope</noscript><p>hi</p></body></html>"
+    )
     out = clean_html(html)
     assert "<style" not in out.lower()
     assert "<script" not in out.lower()
@@ -13,11 +15,11 @@ def test_removes_style_script_noscript() -> None:
 
 def test_removes_hidden_attribute_and_inline_styles() -> None:
     html = (
-        '<div hidden>secret</div>'
+        "<div hidden>secret</div>"
         '<div style="display:none">also-hidden</div>'
         '<div style="display: none;">spaced</div>'
         '<div aria-hidden="true">aria</div>'
-        '<p>visible</p>'
+        "<p>visible</p>"
     )
     out = clean_html(html)
     assert "secret" not in out
