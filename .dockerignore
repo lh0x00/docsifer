@@ -50,3 +50,6 @@ ARCHITECTURE.md
 CONTRIBUTING.md
 LICENSE
 poetry.lock
+
+# Local reference checkouts (never part of the image)
+lightweight-embeddings

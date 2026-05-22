@@ -52,3 +52,9 @@ tmp
 # Credentials and secrets
 # Ignore credentials and secrets files
 .credentials
+
+# Tooling caches
+.ruff_cache
+
+# Local reference checkouts (not part of the docsifer project)
+/lightweight-embeddings/

@@ -1,26 +1,62 @@
 name: Sync Repository to HuggingFace Space
 
+# Auto-deploys the repo to a Hugging Face Space.
+#
+# Triggers:
+#   - workflow_run     → only fires when the CI workflow on main succeeds.
+#   - workflow_dispatch → manual override (e.g. emergency redeploy).
+#
+# Required secret: HF_TOKEN  (Hugging Face access token with write scope)
+# Optional repo variables (Settings → Variables):
+#   HF_USERNAME   default: lamhieu
+#   HF_SPACE      default: docsifer
+
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-  workflow_dispatch:  # Enable manual trigger
+  workflow_dispatch:
+
+concurrency:
+  group: hf-deploy
+  cancel-in-progress: false
 
 jobs:
   sync-to-huggingface:
     name: Sync code to HuggingFace Space
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
-          lfs: true      # Enable Git LFS support
+          fetch-depth: 0
+          lfs: true
 
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ vars.HF_USERNAME || 'lamhieu' }}
+          HF_SPACE: ${{ vars.HF_SPACE || 'docsifer' }}
         run: |
-          if ! git push https://lamhieu:$HF_TOKEN@huggingface.co/spaces/lamhieu/docsifer main -f; then
-            echo "Failed to sync with HuggingFace Space"
+          set -euo pipefail
+
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "::error::HF_TOKEN secret is not configured."
             exit 1
           fi
+
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name  "github-actions[bot]"
+
+          REMOTE="https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}"
+          echo "Pushing HEAD to space ${HF_USERNAME}/${HF_SPACE} (main)"
+
+          # Force-push so the Space mirrors GitHub exactly. The Space history
+          # is treated as a derived artifact, not a source of truth.
+          git push -f "${REMOTE}" HEAD:main

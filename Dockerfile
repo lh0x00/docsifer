@@ -17,16 +17,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=0
 
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         libmagic1 \
-        ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates
 
 WORKDIR /build
 COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     pip install --upgrade pip wheel \
     && pip install --prefix=/install -r requirements.txt
 
@@ -52,13 +53,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=7860 \
     WEB_CONCURRENCY=2
 
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         libmagic1 \
         ffmpeg \
-        curl \
-    && rm -rf /var/lib/apt/lists/*
+        curl
 
 # Hugging Face Spaces requires uid 1000 with write access to /home/user.
 # We honor that convention so the image is portable.
