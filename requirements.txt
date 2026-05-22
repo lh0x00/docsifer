@@ -24,3 +24,7 @@ requests>=2.31,<3.0
 # Optional UI extras
 gradio>=4.40,<5.0
 pandas>=2.0,<3.0
+# Gradio 4.x imports ``HfFolder`` from ``huggingface_hub`` (gradio/oauth.py),
+# which was removed in huggingface_hub 1.0. Pin to the last 0.x line until we
+# move to Gradio 5.x.
+huggingface_hub>=0.23,<1.0
