@@ -16,7 +16,13 @@ ASGICall = Callable[[Request], Awaitable[Response]]
 REQUEST_ID_HEADER = "X-Request-ID"
 _SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    # Allow huggingface.co to embed the Space in its hub iframe while still
+    # blocking arbitrary third-party framing. ``frame-ancestors`` supersedes
+    # the legacy ``X-Frame-Options`` header (which has no allowlist mode).
+    "Content-Security-Policy": (
+        "frame-ancestors 'self' https://huggingface.co https://*.huggingface.co "
+        "https://*.hf.space"
+    ),
     "Referrer-Policy": "no-referrer",
     "X-XSS-Protection": "0",
 }
