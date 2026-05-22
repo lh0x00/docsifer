@@ -1,16 +1,15 @@
 # Production runtime requirements (Hugging Face Spaces / Docker).
-# Keep in sync with [tool.poetry.dependencies] in pyproject.toml. For local
-# development we recommend ``poetry install``; this file exists for build
-# pipelines that don't speak Poetry.
+# Version ranges aligned with the dependency tree used by ``lightweight-embeddings``
+# so Gradio, FastAPI, Starlette, Pydantic and Jinja2 all interop cleanly on
+# Spaces. Keep in sync with ``[tool.poetry.dependencies]`` in pyproject.toml.
 
-fastapi>=0.110,<1.0
-uvicorn[standard]>=0.27,<1.0
-gunicorn>=21.2,<23.0
-pydantic>=2.6,<3.0
-pydantic-settings>=2.2,<3.0
+fastapi>=0.115,<0.120
+uvicorn[standard]>=0.30,<0.40
+pydantic>=2.7,<3.0
+pydantic-settings>=2.4,<3.0
 orjson>=3.10,<4.0
 python-multipart>=0.0.9
-httpx>=0.27,<1.0
+httpx[http2]>=0.27,<0.30
 openai>=1.40,<2.0
 tiktoken>=0.7,<1.0
 markitdown==0.0.1a3
@@ -18,13 +17,13 @@ selectolax>=0.3.21
 python-magic==0.4.27
 upstash-redis>=1.2,<2.0
 cachetools>=5.3,<6.0
-psutil>=5.9,<7.0
+psutil>=5.9,<8.0
+Pillow>=10.3,<12.0
 requests>=2.31,<3.0
 
-# Optional UI extras
-gradio>=4.40,<5.0
+# Optional UI extras.
+# Gradio 5.x is required for compatibility with modern Starlette templating;
+# Gradio 4.x calls ``TemplateResponse`` with a deprecated signature that raises
+# ``TypeError: unhashable type: 'dict'`` in Jinja2 on recent Starlette releases.
+gradio>=5.0,<6.0
 pandas>=2.0,<3.0
-# Gradio 4.x imports ``HfFolder`` from ``huggingface_hub`` (gradio/oauth.py),
-# which was removed in huggingface_hub 1.0. Pin to the last 0.x line until we
-# move to Gradio 5.x.
-huggingface_hub>=0.23,<1.0

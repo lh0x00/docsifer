@@ -97,7 +97,6 @@ All settings are environment-driven (prefix `DOCSIFER_`). See [`.env.example`](.
 | `DOCSIFER_REQUEST_TIMEOUT_SEC`        | `55`    | Conversion timeout                   |
 | `DOCSIFER_REDIS_URL` / `_TOKEN`       | local   | Upstash Redis for analytics          |
 | `DOCSIFER_URL_ALLOW_PRIVATE_NETWORKS` | `false` | Disable to block SSRF                |
-| `WEB_CONCURRENCY` *(Docker)*          | `2`     | Number of Gunicorn workers           |
 
 ## Architecture
 

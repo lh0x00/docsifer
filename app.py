@@ -1,4 +1,4 @@
-"""ASGI entry point for Hugging Face Spaces / uvicorn / gunicorn."""
+"""ASGI entry point for Hugging Face Spaces / uvicorn."""
 
 from docsifer.main import app
 

@@ -6,11 +6,7 @@ and the optional Gradio UI mount.
 
 Run with::
 
-    uvicorn docsifer.main:app --host 0.0.0.0 --port 7860
-
-or in production with::
-
-    gunicorn -k uvicorn.workers.UvicornWorker -w 4 docsifer.main:app
+    uvicorn docsifer.main:app --host 0.0.0.0 --port 7860 --proxy-headers
 """
 
 from __future__ import annotations
