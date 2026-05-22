@@ -1,34 +1,96 @@
-# Use Python 3.10.9 as the base image for consistent runtime environment
-FROM python:3.10.9
+# syntax=docker/dockerfile:1.6
+# =============================================================================
+# Docsifer — production image (multi-stage, slim, HF Spaces compatible)
+# Build:   docker build -t docsifer .
+# Run:     docker run --rm -p 7860:7860 --env-file .env docsifer
+# =============================================================================
 
-# Add metadata labels
-LABEL maintainer="lamhieu.vk@gmail.com"
-LABEL description="Docsifer: Efficient Data Conversion to Markdown using FastAPI and Hugging Face Transformers."
-LABEL version="1.0"
+ARG PYTHON_VERSION=3.11
 
-# Setup non-root user for security
-RUN useradd -m -u 1000 user
-USER user
-ENV HOME=/home/user \
-  PATH=/home/user/.local/bin:$PATH
+# -----------------------------------------------------------------------------
+# Stage 1 — builder: compile wheels into /install
+# -----------------------------------------------------------------------------
+FROM python:${PYTHON_VERSION}-slim AS builder
 
-# Set working directory for all subsequent commands
-WORKDIR $HOME/app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=0
 
-# Copy application files
-# Copy requirements first to leverage Docker cache
-COPY --chown=user requirements.txt .
-COPY --chown=user . .
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libmagic1 \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-# --no-cache-dir reduces image size
-# --upgrade ensures latest compatible versions
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+WORKDIR /build
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip wheel \
+    && pip install --prefix=/install -r requirements.txt
 
-# Expose service port
+# -----------------------------------------------------------------------------
+# Stage 2 — runtime: minimal final image
+# -----------------------------------------------------------------------------
+FROM python:${PYTHON_VERSION}-slim AS runtime
+
+LABEL org.opencontainers.image.title="Docsifer" \
+      org.opencontainers.image.description="Document → Markdown service powered by MarkItDown" \
+      org.opencontainers.image.source="https://github.com/lh0x00/docsifer" \
+      org.opencontainers.image.licenses="MIT"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/home/app/.cache/huggingface \
+    XDG_CACHE_HOME=/home/app/.cache \
+    TMPDIR=/tmp \
+    DOCSIFER_TMP_DIR=/tmp \
+    DOCSIFER_LOG_JSON=true \
+    DOCSIFER_ENVIRONMENT=production \
+    PORT=7860 \
+    WEB_CONCURRENCY=2
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libmagic1 \
+        ffmpeg \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Hugging Face Spaces requires uid 1000 with write access to /home/user.
+# We honor that convention so the image is portable.
+RUN useradd --create-home --uid 1000 --shell /bin/bash app
+
+# Bring in the pre-built site-packages from the builder
+COPY --from=builder /install /usr/local
+
+WORKDIR /home/app/app
+COPY --chown=app:app . .
+
+# Pre-create the cache dirs so HF Spaces / users with restricted FS still work
+RUN mkdir -p "$HF_HOME" "$XDG_CACHE_HOME" \
+    && chown -R app:app /home/app
+
+USER app
+
 EXPOSE 7860
 
-# Launch FastAPI application using uvicorn server
-# --host 0.0.0.0: Listen on all network interfaces
-# --port 7860: Run on port 7860
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${PORT}/v1/healthz" || exit 1
+
+# Gunicorn + Uvicorn workers with deliberate request recycling so any slow
+# library-level memory leak is bounded.  ``WEB_CONCURRENCY`` and ``PORT`` can
+# be tuned via environment variables.
+CMD ["sh", "-c", "exec gunicorn docsifer.main:app \
+      --bind 0.0.0.0:${PORT} \
+      --worker-class uvicorn.workers.UvicornWorker \
+      --workers ${WEB_CONCURRENCY} \
+      --timeout 120 \
+      --graceful-timeout 30 \
+      --max-requests 500 \
+      --max-requests-jitter 50 \
+      --access-logfile - \
+      --error-logfile -"]

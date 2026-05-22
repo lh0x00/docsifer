@@ -1,107 +1,133 @@
 ---
 title: Docsifer
-emoji: 👻 / 📚
-colorFrom: green
-colorTo: indigo
+emoji: 📚
+colorFrom: indigo
+colorTo: violet
 sdk: docker
-app_file: app.py
+app_port: 7860
 pinned: false
+license: mit
+short_description: Convert documents into clean, LLM-ready Markdown.
 ---
 
-# 📄 Docsifer: Efficient Data Conversion to Markdown
+<div align="center">
 
-**Docsifer** is a powerful FastAPI + Gradio service for converting various data formats (PDF, PowerPoint, Word, Excel, Images, Audio, HTML, etc.) to Markdown. It leverages the [MarkItDown](https://github.com/microsoft/markitdown) library and can optionally use LLMs (via OpenAI) for richer extraction (OCR, speech-to-text, etc.).
+# 📚 Docsifer
 
-## ✨ Key Features
+**Convert documents into clean, LLM-ready Markdown.**
 
-- **Comprehensive Format Support**: 
-  - **PDF**: Extracts text and structure effectively.
-  - **PowerPoint**: Converts slides into Markdown-friendly content.
-  - **Word**: Processes `.docx` files with precision.
-  - **Excel**: Extracts tabular data as Markdown tables.
-  - **Images**: Reads **EXIF metadata** and applies **OCR** for text extraction.
-  - **Audio**: Retrieves **EXIF metadata** and performs **speech transcription**.
-  - **HTML**: Transforms web pages into Markdown.
-  - **Text-Based Formats**: Handles CSV, JSON, XML with ease.
-  - **ZIP Files**: Iterates over contents for batch processing.
-- **LLM Integration**: Leverages OpenAI's GPT-4 for enhanced extraction quality and contextual understanding.
-- **Efficient and Fast**: Optimized for speed while maintaining high accuracy.
-- **Easy Deployment**: Dockerized for hassle-free setup and scalability.
-- **Interactive Playground**: Test conversion processes interactively using a **Gradio-powered interface**.
-- **Usage Analytics**: Tracks token usage and access statistics via Upstash Redis.
+PDF · Word · PowerPoint · Excel · HTML · Audio · Image · CSV · JSON · ZIP
 
-## 🚀 Use Cases
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](#)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](#)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](#)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-- **Knowledge Indexing**: Convert various document formats into Markdown for indexing and search.
-- **Text Analysis**: Prepare data for semantic analysis and NLP tasks.
-- **Content Transformation**: Simplify content preparation for blogs, documentation, or databases.
-- **Metadata Extraction**: Extract meaningful metadata from images and audio for categorization and tagging.
+</div>
 
-## 🛠️ Getting Started
+---
 
-### 1. Clone the Repository
+## Features
+
+- **Multi-format** — PDF, Office, audio (Whisper), images (vision), HTML, CSV, JSON, ZIP, and more — powered by [MarkItDown](https://github.com/microsoft/markitdown).
+- **Optional LLM** — bring your own OpenAI-compatible key for OCR, transcription and structured layout extraction.
+- **Production-grade** — bounded concurrency, per-IP fairness, memory watchdog, disk cleanup, circuit breaker.
+- **Hardened** — SSRF guard, path-traversal sanitation, body-size limits, security headers.
+- **Observable** — JSON logs with request id, `/v1/healthz`, `/v1/readyz`, `/v1/stats`.
+- **Privacy-first** — files are processed in-memory and discarded immediately.
+
+## Quickstart
 
 ```bash
-git clone https://github.com/lh0x00/docsifer.git
-cd docsifer
+# Local
+make install
+cp .env.example .env
+make run
+
+# Docker
+docker build -t docsifer .
+docker run --rm -p 7860:7860 --env-file .env docsifer
 ```
 
-### 2. Build and Run with Docker
-Make sure Docker is installed and running on your machine.
+Open <http://localhost:7860> for the UI or <http://localhost:7860/docs> for the API.
+
+## API
+
+| Method | Path           | Description                       |
+| ------ | -------------- | --------------------------------- |
+| POST   | `/v1/convert`  | Convert a file or URL to Markdown |
+| GET    | `/v1/stats`    | Usage analytics snapshot          |
+| GET    | `/v1/healthz`  | Liveness probe                    |
+| GET    | `/v1/readyz`   | Readiness probe                   |
+
+### Examples
+
+Basic conversion:
+
 ```bash
-docker build -t lightweight-embeddings .
-docker run -p 7860:7860 lightweight-embeddings
+curl -X POST http://localhost:7860/v1/convert \
+     -F "file=@document.pdf"
 ```
 
-The API will now be accessible at `http://localhost:7860`.
+With LLM enhancement:
 
-## 📖 API Overview
+```bash
+curl -X POST http://localhost:7860/v1/convert \
+     -F "file=@page.html" \
+     -F 'openai={"api_key":"sk-...","model":"gpt-4o-mini"}'
+```
 
-### Endpoints
+Convert a URL:
 
-- **`/v1/convert`**: Convert a file to Markdown. Supports both file uploads and file path inputs. Accepts optional OpenAI parameters to enable LLM-based enhancements.
-- **`/v1/stats`**: Retrieve usage statistics, including access counts and token usage.
+```bash
+curl -X POST http://localhost:7860/v1/convert \
+     -F "url=https://example.com/article"
+```
 
-### Interactive Docs
+## Configuration
 
-- Visit the [Swagger UI](http://localhost:7860/docs) for detailed, interactive documentation.
-- Explore additional resources with [ReDoc](http://localhost:7860/redoc).
+All settings are environment-driven (prefix `DOCSIFER_`). See [`.env.example`](.env.example) for the full list. Common knobs:
 
-## 🔬 Playground
+| Variable                              | Default | Purpose                              |
+| ------------------------------------- | ------- | ------------------------------------ |
+| `DOCSIFER_MAX_UPLOAD_BYTES`           | `10MB`  | Hard upload limit                    |
+| `DOCSIFER_MAX_CONCURRENT_CONVERSIONS` | `2`     | Global parallelism                   |
+| `DOCSIFER_MAX_QUEUE_DEPTH`            | `10`    | Reject 503 when exceeded             |
+| `DOCSIFER_MAX_PER_IP_CONCURRENT`      | `1`     | Per-IP fairness                      |
+| `DOCSIFER_REQUEST_TIMEOUT_SEC`        | `55`    | Conversion timeout                   |
+| `DOCSIFER_REDIS_URL` / `_TOKEN`       | local   | Upstash Redis for analytics          |
+| `DOCSIFER_URL_ALLOW_PRIVATE_NETWORKS` | `false` | Disable to block SSRF                |
+| `WEB_CONCURRENCY` *(Docker)*          | `2`     | Number of Gunicorn workers           |
 
-### Interactive Conversion
+## Architecture
 
-- Test file conversion directly in the browser using the **Gradio interface**.
-- Simply visit `http://localhost:7860` after starting the server to access the playground.
+```
+docsifer/
+├── api/         FastAPI layer — routes, schemas, middleware
+├── core/        Pure logic — converter, MIME, tokenizer, LLM cache
+├── analytics/   Lifespan-managed analytics (Upstash + in-memory)
+├── safety/      Anti-crash primitives (gate, limiter, watchdog, breaker)
+├── ui/          Optional Gradio playground
+├── config.py    Pydantic settings
+├── exceptions.py
+├── logging_config.py
+└── main.py      App factory + lifespan
+```
 
-### Features
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full design notes.
 
-- **File Upload**: Upload a file directly or provide a local file path.
-- **OpenAI Integration**: Optionally provide OpenAI API details to enhance conversion with LLM capabilities.
-- **Conversion Result**: View the resulting Markdown output instantly.
-- **Usage Statistics**: Monitor access and token usage through the Gradio interface.
+## Development
 
-## 🌐 Resources
+```bash
+make install   # runtime + dev deps
+make lint      # ruff
+make format    # ruff format
+make type      # mypy
+make test      # pytest
+make cov       # pytest with coverage
+```
 
-- **Documentation**: [Explore full documentation](https://lamhieu-docsifer.hf.space/docs)
-- **Hugging Face Space**: [Try the live demo](https://huggingface.co/spaces/lh0x00/docsifer)
-- **GitHub Repository**: [View source code](https://github.com/lh0x00/docsifer)
+## License
 
-## 💡 Why Docsifer?
-
-1. **Versatile and Comprehensive**: Handles a wide range of formats, making it a one-stop solution for content conversion.
-2. **AI-Powered**: Uses OpenAI's GPT-4 to enhance extraction accuracy and adapt to complex data structures.
-3. **User-Friendly**: Offers intuitive APIs and a built-in interactive interface for experimentation.
-4. **Scalable and Efficient**: Optimized for performance with Docker support and asynchronous processing.
-5. **Transparent Analytics**: Tracks usage metrics to help monitor and manage service consumption.
-
-## 👥 Contributors
-
-- **lamhieu / lh0x00** – Creator and Maintainer ([GitHub](https://github.com/lh0x00), [HuggingFace](https://huggingface.co/lamhieu))
-
-Contributions are welcome! Check out the [contribution guidelines](https://github.com/lh0x00/docsifer/blob/main/CONTRIBUTING.md).
-
-## 📜 License
-
-This project is licensed under the **MIT License**. See the [LICENSE](https://github.com/lh0x00/docsifer/blob/main/LICENSE) file for details.
-
+[MIT](LICENSE) © Lam Hieu — built on top of the wonderful
+[MarkItDown](https://github.com/microsoft/markitdown).

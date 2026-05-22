@@ -1,15 +1,26 @@
-gradio
-fastapi
-uvicorn
-requests
-pydantic
-cachetools
-scuid
-markitdown @ git+https://github.com/microsoft/markitdown@519fe172
-upstash_redis==1.2.0
-openai==1.59.7
-pyquery==2.0.1
-tiktoken==0.8.0
-aiohttp==3.11.11
+# Production runtime requirements (Hugging Face Spaces / Docker).
+# Keep in sync with [tool.poetry.dependencies] in pyproject.toml. For local
+# development we recommend ``poetry install``; this file exists for build
+# pipelines that don't speak Poetry.
+
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.27,<1.0
+gunicorn>=21.2,<23.0
+pydantic>=2.6,<3.0
+pydantic-settings>=2.2,<3.0
+orjson>=3.10,<4.0
+python-multipart>=0.0.9
+httpx>=0.27,<1.0
+openai>=1.40,<2.0
+tiktoken>=0.7,<1.0
+markitdown==0.0.1a3
+selectolax>=0.3.21
 python-magic==0.4.27
-youtube-transcript-api==0.6.3
+upstash-redis>=1.2,<2.0
+cachetools>=5.3,<6.0
+psutil>=5.9,<7.0
+requests>=2.31,<3.0
+
+# Optional UI extras
+gradio>=4.40,<5.0
+pandas>=2.0,<3.0

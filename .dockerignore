@@ -1,0 +1,52 @@
+# VCS / IDE
+.git
+.gitignore
+.github
+.gitattributes
+.idea
+.vscode
+.editorconfig
+.windsurf
+.cursor
+
+# Python
+__pycache__
+*.py[cod]
+*.so
+*.egg
+*.egg-info
+.Python
+.venv
+venv
+env
+.tox
+.nox
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+.coverage.*
+htmlcov
+dist
+build
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Project
+tests
+docs
+.env
+.env.*
+!.env.example
+*.log
+*.local
+*.bak
+.DS_Store
+
+# Tooling / docs that don't belong in the runtime image
+Makefile
+.pre-commit-config.yaml
+ARCHITECTURE.md
+CONTRIBUTING.md
+LICENSE
+poetry.lock
