@@ -126,7 +126,7 @@ class UpstashStore:
                 pipe = pipeline()
                 for key, label, count in ops:
                     pipe.hincrby(key, label, count)
-                pipe.execute()
+                pipe.exec()
 
             await loop.run_in_executor(None, _run)
             return
